@@ -12,4 +12,4 @@ Local environment: Python 3.12.3 on Linux. Exact dependencies are recorded in `r
 
 The dashboard, runtime messages, CLI help, API descriptions, and repository documentation are in English. The README screenshot is captured from the English dashboard.
 
-GitHub Actions runs on Python 3.11, 3.12, and 3.13. The private repository is https://github.com/maxtyy/quantforge. Pushes trigger cloud validation; see the repository's Actions page for current results.
+GitHub Actions runs on Python 3.11, 3.12, and 3.13. The public repository is https://github.com/maxtyy/quantforge. Pushes trigger cloud validation; see the repository's Actions page for current results.

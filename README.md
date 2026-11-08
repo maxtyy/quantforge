@@ -141,11 +141,11 @@ Tests cover signal and fill timing, future-data isolation, costs and accounting 
 
 ## GitHub repository
 
-Repository: [maxtyy/quantforge](https://github.com/maxtyy/quantforge). It is private and requires access to clone or view.
+Repository: [maxtyy/quantforge](https://github.com/maxtyy/quantforge). It is public and available under the MIT License.
 
 ```bash
-gh auth login --hostname github.com --git-protocol https --web
-gh repo clone maxtyy/quantforge
+git clone https://github.com/maxtyy/quantforge.git
+cd quantforge
 ```
 
 Local account databases, credentials, and licensed market data should stay out of version control. The repository ignores `data/`, `reports/`, and `.env` files.
