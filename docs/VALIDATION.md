@@ -10,4 +10,4 @@
 - 1440 像素桌面和 390 像素手机布局检查通过；修复了窄屏表格造成的整页横向溢出。
 - Yahoo 真实网络下载尝试返回上游限流 `YFRateLimitError`，因此本环境未验证成功下载真实行情；CLI 返回清晰错误，CSV 与离线演示链路已验证。
 
-GitHub Actions 已配置 Python 3.11、3.12、3.13；本记录不代表这些云端任务已经执行。远程仓库尚待 GitHub 账号登录后创建。
+GitHub Actions 已配置 Python 3.11、3.12、3.13。远程私有仓库已创建并推送至 https://github.com/maxtyy/quantforge ，每次推送会触发云端验证，最新结果见仓库 Actions 页面。
