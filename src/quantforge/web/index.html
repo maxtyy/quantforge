@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuantForge · 量化研究台</title><link rel="stylesheet" href="/static/style.css"><script defer src="/static/app.js"></script></head>
+<body>
+<header><a class="brand" href="/" aria-label="QuantForge 首页"><span class="logo">Q</span> QuantForge <span class="subtle">/ 研究台</span></a><span class="status"><i></i> 本地模拟环境</span><a href="/docs" target="_blank" rel="noopener">API 文档 ↗</a></header>
+<main>
+<section class="intro"><div><p class="eyebrow">RESEARCH → BACKTEST → SIMULATE</p><h1>让每一个交易想法，<br>经得起数据检验。</h1><p class="subtle">可复现的策略研究 · 可解释的交易成本 · 有边界的风险控制</p></div><div class="intro-note"><span>研究工作流</span><strong>01 / 策略实验</strong><p>收盘生成信号，下一交易日开盘执行。<br>用完整交易记录验证你的判断。</p></div></section>
+<div id="notice" role="status" aria-live="polite">正在加载研究环境…</div>
+<div class="workspace">
+<aside class="panel"><div class="panel-heading"><h2>实验配置</h2><span class="tag">DAILY</span></div>
+<form id="backtest-form">
+<label>研究标的<select id="symbol"><option>DEMO</option></select></label>
+<p class="hint" id="data-label">DEMO 为合成日线，不代表真实证券收益。</p>
+<label>策略<select id="strategy"><option value="trend">双均线趋势</option><option value="momentum">时间序列动量</option><option value="mean_reversion">均值回归</option></select></label>
+<div class="pair"><label>快速窗口<input id="fast" type="number" min="2" max="999" value="20" required></label><label>慢速窗口<input id="slow" type="number" min="3" max="1000" value="60" required></label></div>
+<div class="pair"><label>回看窗口<input id="lookback" type="number" min="2" max="1000" value="20" required></label><label>回归阈值 Z<input id="entry-z" type="number" min="0.1" max="10" step="0.1" value="1.5" required></label></div>
+<label>初始资金<input id="cash" type="number" min="100" value="100000" required></label>
+<div class="divider"></div><h3>风险与交易成本</h3>
+<div class="pair"><label>仓位上限 %<input id="position" type="number" min="1" max="100" value="95" required></label><label>回撤熔断 %<input id="drawdown" type="number" min="1" max="100" value="20" required></label></div>
+<div class="pair"><label>手续费 bps<input id="commission" type="number" min="0" max="100" step="0.5" value="5" required></label><label>滑点 bps<input id="slippage" type="number" min="0" max="100" step="0.5" value="5" required></label></div>
+<label>目标年化波动率 %<input id="volatility" type="number" min="0" max="300" value="15" required></label><p class="hint">设为 0 关闭波动率控制。1 bps = 0.01%。</p>
+<button class="primary" type="submit" id="run">运行回测 <span>→</span></button>
+</form></aside>
+<div class="results">
+<section class="metrics" aria-label="回测指标"><article><span>累计收益</span><strong id="total-return">—</strong><small id="period">等待回测</small></article><article><span>年化收益</span><strong id="annual-return">—</strong><small>按 252 个交易日年化</small></article><article><span>最大回撤</span><strong id="max-dd">—</strong><small>基于每日收盘权益</small></article><article><span>夏普比率</span><strong id="sharpe">—</strong><small>无风险利率假设为 0</small></article></section>
+<section class="panel chart-panel"><div class="panel-heading"><div><h2>资金曲线</h2><p class="hint">策略权益与买入持有基准 · 基准不计交易成本</p></div><button id="export" class="secondary" disabled>导出 JSON ↓</button></div><div class="legend"><span><i class="green"></i>策略权益</span><span><i class="gray"></i>买入持有</span></div><div id="chart" aria-label="回测权益曲线"><p class="empty">运行回测后显示资金曲线</p></div><div class="chart-footer"><span id="trade-summary">—</span><span id="risk-summary">—</span></div></section>
+<section class="panel"><div class="panel-heading"><h2>成交记录</h2><span class="hint">最近 30 笔 · 全部记录见导出报告</span></div><div class="table-wrap"><table><thead><tr><th>日期</th><th>方向</th><th>数量</th><th>成交价</th><th>手续费</th><th>卖出已实现盈亏</th></tr></thead><tbody id="trades"><tr><td colspan="6" class="empty">暂无成交记录</td></tr></tbody></table></div></section>
+</div></div>
+<div class="bottom-grid"><section class="panel"><div class="panel-heading"><h2>行情数据</h2><span class="tag">IMPORT</span></div><p class="hint">支持 Yahoo 复权日线与标准 CSV。Yahoo 结束日期不包含当天。</p><form id="download-form"><div class="pair"><label>证券代码<input id="download-symbol" value="SPY" maxlength="20" required></label><label>来源<select disabled><option>Yahoo Finance</option></select></label></div><div class="pair"><label>开始日期<input id="start-date" type="date" value="2020-01-01" required></label><label>结束日期<input id="end-date" type="date" value="2025-12-31" required></label></div><button class="secondary" type="submit">下载并导入行情</button></form><div class="divider"></div><form id="csv-form"><label>CSV 标的代码<input id="csv-symbol" placeholder="例如：LOCAL_ETF" maxlength="20" required></label><label>选择 CSV<input id="csv-file" type="file" accept=".csv,text/csv" required></label><p class="hint">字段：date, open, high, low, close, volume</p><button class="secondary" type="submit">导入 CSV</button></form></section>
+<section class="panel"><div class="panel-heading"><h2>本地模拟账户</h2><span class="tag">PAPER</span></div><div class="account"><div><span>账户权益</span><strong id="paper-equity">—</strong></div><div><span>可用资金</span><strong id="paper-cash">—</strong></div></div><p class="hint">按已导入行情的最后收盘价模拟成交，另计 5 bps 滑点和 5 bps 手续费。历史价格不代表实时可成交价格。</p><form id="order-form"><div class="pair"><label>标的<select id="order-symbol"><option>DEMO</option></select></label><label>方向<select id="side"><option value="buy">买入</option><option value="sell">卖出</option></select></label></div><label>数量<input id="quantity" type="number" min="0.0001" step="any" value="10" required></label><button class="secondary" type="submit">提交本地模拟订单</button></form><p id="order-result" class="hint" aria-live="polite"></p><div id="positions" class="positions"></div><p class="hint">单笔上限 25,000；单标的仓位上限 95%；不支持卖空。持仓按各自最近一次模拟成交参考价估值。</p></section></div>
+<footer><span>QuantForge · 开源量化研究工作台</span><span>日线 / 单标的 / 只做多 / 本地模拟</span></footer>
+</main></body></html>

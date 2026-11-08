@@ -1,0 +1,4 @@
+include requirements.lock.txt
+include Makefile
+recursive-include docs *.md *.png
+recursive-include src/quantforge/web *.html *.css *.js
