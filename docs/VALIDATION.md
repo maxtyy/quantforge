@@ -1,13 +1,15 @@
-# 本次验证记录
+# Validation record
 
-环境：Python 3.12.3，Linux；依赖版本见 `requirements.lock.txt`。
+Local environment: Python 3.12.3 on Linux. Exact dependencies are recorded in `requirements.lock.txt`.
 
-- `pytest -q`：35 项测试通过。第三方 Starlette 测试客户端提示未来改用 httpx2，当前测试正常。
-- `ruff check .` 和 `ruff format --check .`：通过。
-- `quantforge demo`：756 行合成日线完成回测，导出权益、成交、JSON 报告与输入行情。
-- `python -m build`：源码包和 wheel 构建成功，包含网页静态资源。
-- Chromium 浏览器：默认回测、切换策略、JSON 下载、模拟买入卖出、CSV 上传与回测均通过，无 JavaScript 异常。
-- 1440 像素桌面和 390 像素手机布局检查通过；修复了窄屏表格造成的整页横向溢出。
-- Yahoo 真实网络下载尝试返回上游限流 `YFRateLimitError`，因此本环境未验证成功下载真实行情；CLI 返回清晰错误，CSV 与离线演示链路已验证。
+- `pytest -q`: 35 tests passed. The third-party Starlette test client emits a deprecation notice about moving to httpx2; current tests work.
+- `ruff check .` and `ruff format --check .`: passed.
+- `quantforge demo`: completed a backtest on 756 synthetic daily bars and exported equity, fills, a JSON report, and input data.
+- `python -m build`: source distribution and wheel built successfully, including dashboard assets.
+- Chromium: default backtest, strategy switching, JSON download, paper buys and sells, CSV upload, and backtesting passed without JavaScript errors.
+- Desktop at 1440 pixels and mobile at 390 pixels passed layout checks. A table overflow issue on narrow screens was fixed.
+- A live Yahoo download attempt returned `YFRateLimitError` from the upstream service, so successful real-data downloading was not verified in this environment. The CLI returned a clear error; CSV and offline demo workflows were verified.
 
-GitHub Actions 已配置 Python 3.11、3.12、3.13。远程私有仓库已创建并推送至 https://github.com/maxtyy/quantforge ，每次推送会触发云端验证，最新结果见仓库 Actions 页面。
+The dashboard, runtime messages, CLI help, API descriptions, and repository documentation are in English. The README screenshot is captured from the English dashboard.
+
+GitHub Actions runs on Python 3.11, 3.12, and 3.13. The private repository is https://github.com/maxtyy/quantforge. Pushes trigger cloud validation; see the repository's Actions page for current results.

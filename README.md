@@ -1,14 +1,14 @@
 # QuantForge
 
-一个可本地运行的 Python 量化研究项目：从行情导入、策略信号、含成本回测，到风控、报告导出和持久化模拟交易。配有中文网页研究台和 REST API，无需 API 密钥即可运行完整演示。
+A local Python platform for quantitative research: market data ingestion, strategy signals, backtesting with trading costs, risk controls, report exports, and persistent paper trading. Includes an English research dashboard and REST API. The full demo runs without API keys.
 
-**当前范围：股票 / ETF 日线、单标的、只做多、无杠杆、本地模拟成交。** 不连接实盘券商。DEMO 使用明确标注的合成行情，不代表任何真实证券收益。
+**Current scope: daily stock / ETF bars, one asset per backtest, long only, no leverage, and local simulated fills.** No live broker connection is included. DEMO uses clearly labeled synthetic data and does not represent actual security returns.
 
-![QuantForge 中文研究台](docs/dashboard.png)
+![QuantForge research dashboard](docs/dashboard.png)
 
-## 快速开始
+## Quick start
 
-需要 Python 3.11+。在项目根目录运行：
+Requires Python 3.11+. Run from the project root:
 
 ```bash
 python3 -m venv .venv
@@ -19,44 +19,44 @@ quantforge demo
 quantforge serve
 ```
 
-打开 **http://127.0.0.1:8000**。API 文档位于 **http://127.0.0.1:8000/docs**。网页首次打开会自动执行演示回测。
+Open **http://127.0.0.1:8000**. Interactive API documentation is available at **http://127.0.0.1:8000/docs**. The dashboard automatically runs a demo backtest on first load.
 
-如果系统的软件源未配置，可显式使用 `python -m pip install --index-url https://pypi.org/simple -e '.[dev]'`。
+If your package index is not configured, use `python -m pip install --index-url https://pypi.org/simple -e '.[dev]'`.
 
-## 已实现功能
+## Features
 
-| 模块 | 能力 |
+| Module | Capabilities |
 | --- | --- |
-| 行情 | 固定随机种子的合成日线、标准 CSV 导入、Yahoo 复权日线下载 |
-| 校验 | 拒绝重复日期、缺失字段、NaN、无穷值、负价格及非法 OHLC |
-| 策略 | 双均线趋势、时间序列动量、带持仓状态的均值回归 |
-| 回测 | 当日收盘信号 → 下一交易日开盘成交，手续费、滑点、零杠杆资金约束 |
-| 风控 | 单标的仓位上限、历史波动率缩放、收盘回撤触发后下一开盘清仓 |
-| 绩效 | 收益、年化收益、年化波动率、夏普、最大回撤、卖出成交胜率、成本 |
-| 报告 | 权益曲线 CSV、成交 CSV、包含参数及逐日记录的 JSON |
-| 模拟交易 | SQLite 持久化、事务内风控、幂等订单、现金与持仓成本记账 |
-| 网页 | 中文研究台、参数编辑、资金曲线、交易记录、导入、导出、模拟下单 |
-| 工程 | Python 包、CLI、自动化测试、Ruff、GitHub Actions、MIT 许可 |
+| Market data | Reproducible synthetic bars, standard CSV imports, Yahoo adjusted daily bars |
+| Validation | Rejects duplicate dates, missing columns, NaN, infinite values, nonpositive prices, and invalid OHLC |
+| Strategies | Moving average trend, time-series momentum, stateful mean reversion |
+| Backtesting | Closing signals executed at the next open, commissions, slippage, and cash constraints |
+| Risk controls | Position limits, historical volatility scaling, next-open liquidation after a closing drawdown trigger |
+| Performance | Returns, annualized volatility, Sharpe ratio, drawdown, sell-fill win rate, and trading costs |
+| Reports | Equity and trade CSVs, plus JSON with parameters and daily records |
+| Paper trading | SQLite persistence, transactional risk checks, idempotent orders, cash and cost-basis accounting |
+| Dashboard | Parameter editing, equity curves, trade history, imports, exports, and paper orders |
+| Engineering | Python package, CLI, automated tests, Ruff, GitHub Actions, MIT license |
 
-## 命令行工作流
+## Command-line workflow
 
 ```bash
-# 离线演示，报告包含对应的合成行情 CSV
+# Offline demo; includes the corresponding synthetic market data CSV
 quantforge demo --output reports/demo
 
-# 下载行情：结束日期不包含当天；网络/数据服务可用性由 Yahoo 决定
+# Download historical data. The end date is exclusive; availability depends on Yahoo.
 quantforge download SPY --start 2020-01-01 --end 2025-12-31
 
-# 回测下载的行情
+# Backtest the downloaded data
 quantforge backtest data/datasets/SPY.csv --strategy trend --cash 100000
 quantforge backtest data/datasets/SPY.csv --strategy momentum --output reports/momentum
 quantforge backtest data/datasets/SPY.csv --strategy mean_reversion --output reports/reversion
 
-# 使用不同端口运行研究台
+# Start the dashboard on another port
 quantforge serve --port 8080
 ```
 
-CSV 格式：日期应为 `YYYY-MM-DD`，价格应处于一致的复权口径，不要混用未复权 OHLC 和复权收盘价。
+CSV dates should use `YYYY-MM-DD`. All prices must use consistent adjustments; do not mix unadjusted OHLC with adjusted closing prices.
 
 ```csv
 date,open,high,low,close,volume
@@ -64,9 +64,9 @@ date,open,high,low,close,volume
 2025-01-03,101,104,100,103,1200000
 ```
 
-项目不自动转换币种。初始资金、价格和收益金额必须采用同一种货币；不同币种标的不应放进同一模拟账户。
+There is no automatic currency conversion. Initial cash, prices, and monetary returns must use the same currency. Do not combine assets denominated in different currencies in one paper account.
 
-## Python 研究接口
+## Python research interface
 
 ```python
 from quantforge.data import demo_bars
@@ -89,18 +89,18 @@ print(result.metrics)
 result.export("reports/custom")
 ```
 
-策略参数含义与成交模型见 [研究与执行假设](docs/METHODOLOGY.md)。项目结构和扩展方式见 [架构说明](docs/ARCHITECTURE.md)。
+See [Research and execution assumptions](docs/METHODOLOGY.md) for strategy parameters and fill mechanics, and [Architecture](docs/ARCHITECTURE.md) for extension points.
 
-## 模拟交易规则
+## Paper trading rules
 
-网页模拟订单以对应数据集的**最后一个收盘价**为参考，买入加 5 bps 滑点、卖出减 5 bps 滑点，另收 5 bps 手续费。它是本地成交模拟器，不是实时撮合系统，也不会向券商发送订单。
+Dashboard orders use the dataset's **last closing price** as their reference. Buy fills add 5 bps of slippage, sell fills subtract 5 bps, and both incur 5 bps commission. This is a local fill simulator; it does not match live orders or send orders to a broker.
 
-- 初始资金 100,000；单笔成交金额上限 25,000；单标的持仓上限 95%。
-- 不允许透支、卖空或提交非正数数量；支持小数份额。
-- `client_order_id` 提供幂等性；同一 ID 重试不会重复成交，不同参数复用同一 ID 会被拒绝。
-- 账户权益使用各持仓最近一次模拟成交的参考价格，接口返回其日期；不是自动刷新行情后的市值。
-- 数据位于 `data/paper.sqlite3`，行情位于 `data/datasets/`。可通过环境变量 `QUANTFORGE_DATA_DIR` 更换目录；`.env` 文件不会自动加载。
-- 本地账户可跨会话保留。需要独立研究账户时，使用不同的数据目录。
+- Initial cash: 100,000. Maximum order notional: 25,000. Maximum single-position allocation: 95%.
+- No overdrafts, short selling, or nonpositive quantities. Fractional shares are supported.
+- `client_order_id` provides idempotency: retrying an ID does not create another fill, and reusing it with different parameters is rejected.
+- Account equity uses each holding's most recent simulated fill reference price. Its date is returned by the API; valuations do not refresh automatically.
+- Accounts are stored in `data/paper.sqlite3` and market data in `data/datasets/`. Set `QUANTFORGE_DATA_DIR` to use another directory. `.env` files are not loaded automatically.
+- Accounts persist across sessions. Use separate data directories for independent research accounts.
 
 ```bash
 QUANTFORGE_DATA_DIR=./data/experiment-2 quantforge serve --port 8001
@@ -108,15 +108,15 @@ QUANTFORGE_DATA_DIR=./data/experiment-2 quantforge serve --port 8001
 
 ## API
 
-| 方法与路径 | 用途 |
+| Method and path | Purpose |
 | --- | --- |
-| `GET /api/health` | 健康状态 |
-| `GET /api/datasets` | 已导入标的 |
-| `POST /api/data` | 导入演示数据或 Yahoo 行情 |
-| `POST /api/data/csv` | 导入 CSV 字符串 |
-| `POST /api/backtests` | 回测，返回参数、权益、成交及指标 |
-| `GET /api/paper/account` | 账户、持仓、最近 100 笔订单 |
-| `POST /api/paper/orders` | 提交本地模拟订单 |
+| `GET /api/health` | Service health |
+| `GET /api/datasets` | Imported symbols |
+| `POST /api/data` | Import demo or Yahoo data |
+| `POST /api/data/csv` | Import a CSV string |
+| `POST /api/backtests` | Return parameters, equity, fills, and metrics |
+| `GET /api/paper/account` | Account, positions, and the latest 100 orders |
+| `POST /api/paper/orders` | Submit a local paper order |
 
 ```bash
 curl http://127.0.0.1:8000/api/backtests \
@@ -124,9 +124,9 @@ curl http://127.0.0.1:8000/api/backtests \
   -d '{"symbol":"DEMO","strategy":{"name":"trend","fast":20,"slow":60}}'
 ```
 
-服务默认只绑定 `127.0.0.1`，没有用户认证，面向单用户本机使用。部署到多人或公网环境前需要实现身份认证、访问控制、TLS 和请求资源限制。
+The service binds to `127.0.0.1` by default and has no user authentication. It is intended for one user on a local machine. Multiuser or public deployments require authentication, access controls, TLS, and request resource limits.
 
-## 开发与验证
+## Development and validation
 
 ```bash
 ruff check .
@@ -135,24 +135,23 @@ pytest -q
 python -m build
 ```
 
-测试覆盖信号与成交时序、未来数据扰动不改变过去结果、成本与资产恒等式、回撤清仓、无交易场景、输入校验、持仓与现金约束、重试及并发幂等性、API 数据导入到模拟成交的完整链路。CI 配置为 Python 3.11 / 3.12 / 3.13，并导出演示报告作为构建附件。
+Tests cover signal and fill timing, future-data isolation, costs and accounting identities, drawdown liquidation, no-trade scenarios, input validation, cash and position constraints, concurrent order retries, and the API workflow from data import to paper fills. CI runs on Python 3.11, 3.12, and 3.13 and uploads demo reports as build artifacts.
 
-`requirements.lock.txt` 记录已验证开发环境的精确依赖；通常按 `pyproject.toml` 安装即可。
+`requirements.lock.txt` records exact dependencies from the validated development environment. Installing from `pyproject.toml` is sufficient for normal use. See [Validation](docs/VALIDATION.md) for verification details.
 
-## 创建 GitHub 远程仓库
+## GitHub repository
 
-本项目可以直接作为独立 GitHub 仓库。安装 [GitHub CLI](https://cli.github.com/) 后，在项目根目录执行：
+Repository: [maxtyy/quantforge](https://github.com/maxtyy/quantforge). It is private and requires access to clone or view.
 
 ```bash
 gh auth login --hostname github.com --git-protocol https --web
-gh repo create quantforge --private --source=. --remote=origin --push \
-  --description 'Python quantitative research, cost-aware backtesting and local paper trading'
+gh repo clone maxtyy/quantforge
 ```
 
-默认使用私有仓库；需要公开源码时可自行将 `--private` 替换为 `--public`。不要提交本地账户数据库、真实密钥或受许可限制的行情数据；项目已将 `data/`、`reports/` 和 `.env` 加入忽略规则。
+Local account databases, credentials, and licensed market data should stay out of version control. The repository ignores `data/`, `reports/`, and `.env` files.
 
-## 使用边界
+## Limitations
 
-目前没有多标的组合优化、滚动样本外评估、交易日历校验、涨跌停/停牌处理、A 股整手与 T+1 约束、真实券商适配或生产级运维。CSV 可导入不同市场，但实际成交规则需要按市场补充。历史回测和合成演示均不能证明未来盈利。
+The project does not yet include multi-asset portfolio optimization, walk-forward evaluation, exchange-calendar validation, price-limit or trading-halt rules, A-share board-lot and T+1 restrictions, live broker adapters, or production operations tooling. CSV imports can represent different markets, but their execution rules need market-specific extensions. Historical backtests and synthetic demos do not establish future profitability.
 
-MIT License。欢迎通过 Issue 和 Pull Request 改进。
+MIT License. Issues and pull requests are welcome.

@@ -1,53 +1,53 @@
-# 架构与扩展
+# Architecture and extensions
 
 ```text
 CSV / Yahoo / Synthetic
-          │
-     data.py（校验）
-          │
-  strategies.py（当日收盘目标）
-          │
-    engine.py（下一开盘成交 + 风控）
-          │
-     指标 / 权益 / 交易 / 报告
-          │
+          |
+     data.py (validation)
+          |
+  strategies.py (closing targets)
+          |
+    engine.py (next-open fills + risk controls)
+          |
+     Metrics / Equity / Trades / Reports
+          |
        CLI / API / Web
 
-最后收盘参考价 → paper.py → SQLite 账户与订单
+Last closing reference price -> paper.py -> SQLite accounts and orders
 ```
 
 ```text
 src/quantforge/
-  data.py          行情源、标的和 OHLCV 校验
-  strategies.py    策略参数及目标仓位信号
-  engine.py        回测、风险控制、绩效与报告
-  paper.py         本地模拟成交和事务性记账
-  api.py           FastAPI 应用工厂
-  cli.py           命令行入口
-  web/             不依赖前端构建或外部 CDN 的网页
- tests/             核心与集成测试
- docs/              方法论和架构说明
- .github/workflows/ GitHub CI
+  data.py          Data sources, symbol checks, and OHLCV validation
+  strategies.py    Strategy configuration and target signals
+  engine.py        Backtesting, risk controls, performance, and reports
+  paper.py         Local fill simulation and transactional accounting
+  api.py           FastAPI application factory
+  cli.py           Command-line entry points
+  web/             Dashboard with no frontend build or external CDN dependency
+tests/             Core and integration tests
+docs/              Methodology, architecture, and validation
+.github/workflows/ GitHub CI
 ```
 
-## 扩展策略
+## Adding strategies
 
-在 `StrategyConfig` 的策略名校验和 `target_weights()` 中加入新策略，返回与输入行情索引对齐、范围为 [0,1] 的 Series。计算只能使用当日及以前的数据，不能在策略内再次移动一天；成交层统一执行 `shift(1)`。同时扩展 CLI、网页选项并加入未来数据扰动测试。
+Extend strategy-name validation in `StrategyConfig` and implement the new strategy in `target_weights()`. Return a Series aligned with the input index, with values in [0, 1]. Calculations must use only current and past data. Do not shift signals inside the strategy: the execution engine applies `shift(1)`. Update CLI and dashboard options and add a future-data perturbation test.
 
-## 扩展行情
+## Adding data sources
 
-新数据源返回通过 `validate_bars()` 的 DataFrame。OHLC 必须采用一致口径。不要静默修补重复日期、无效价格或缺失值。交易所日历、复权和停牌信息需要在市场适配层显式处理。
+New sources must return a DataFrame accepted by `validate_bars()`. OHLC prices must use consistent adjustments. Do not silently repair duplicate dates, invalid prices, or missing values. Exchange calendars, corporate actions, and trading halts belong in an explicit market adapter.
 
-## 模拟账户与并发
+## Paper accounts and concurrency
 
-每次请求使用独立 SQLite 连接。提交订单在 `BEGIN IMMEDIATE` 事务内依次检查幂等记录、读取账户和持仓、校验风控并原子写入。读取账户也在事务中获取一致快照。并发提交相同订单 ID 只能产生一笔成交。
+Each request uses a separate SQLite connection. Order submission runs inside a `BEGIN IMMEDIATE` transaction: check idempotency, read account and position state, validate risk constraints, then write atomically. Account reads also use a transaction for a consistent snapshot. Concurrent submissions with the same order ID produce only one fill.
 
-历史 CSV 文件采用临时文件加原子替换，避免回测读到写入中的内容。CSV 导入会覆盖同名数据集；已生成的回测报告不自动更新。账户成交记录保存实际采用的价格和行情日期。
+Historical CSV files use a temporary file followed by atomic replacement, so backtests never read a partial write. Importing a CSV replaces any dataset with the same symbol; previously generated reports are not updated. Account fill records retain the actual reference date and execution price.
 
-当前单账户适合本机研究。多用户部署需要独立账户边界、数据库迁移、身份认证、后台任务队列与可观测性；不能直接把本地 API 暴露到公网。
+The single-account design is intended for local research. Multiuser deployments need account isolation, database migrations, authentication, background jobs, and observability. The local API is not ready for direct public exposure.
 
-## 研究与模拟交易的边界
+## Research and paper trading boundaries
 
-回测独立维护逐日权益，模拟账户独立持久化手动订单。二者不会自动同步，也没有调度器自动将策略信号转成模拟订单。模拟账户标价是最后一次成交参考价，不能用它替代实时组合估值。
+Backtests maintain their own daily equity. The paper account independently persists manually submitted orders. They do not synchronize automatically, and no scheduler converts strategy signals into paper orders. Paper valuations use the most recent simulated fill reference prices and cannot replace live portfolio valuation.
 
-接入真实券商是独立工程工作，需要订单生命周期、成交回报、撤单、重试、交易时段、账户对账和券商侧风控；当前仓库没有此适配器。
+A live broker integration requires order lifecycle management, fill events, cancellations, retries, trading-session rules, reconciliation, and broker-side risk controls. No such adapter is included.

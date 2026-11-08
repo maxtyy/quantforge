@@ -15,7 +15,9 @@ SYMBOL_PATTERN = r"[A-Za-z0-9^][A-Za-z0-9.^=_-]{0,19}"
 
 def validate_symbol(symbol: str) -> str:
     if not re.fullmatch(SYMBOL_PATTERN, symbol):
-        raise ValueError("代码只能包含字母、数字及 . ^ = _ -，长度不超过 20")
+        raise ValueError(
+            "Symbols may contain only letters, digits, and . ^ = _ -, with a maximum length of 20"
+        )
     return symbol.upper()
 
 
@@ -23,34 +25,34 @@ def validate_bars(frame: pd.DataFrame) -> pd.DataFrame:
     bars = frame.copy()
     bars.columns = [str(c).strip().lower() for c in bars.columns]
     if bars.columns.duplicated().any():
-        raise ValueError("行情列名不能重复")
+        raise ValueError("Market data column names must be unique")
     if "date" in bars.columns:
         bars.index = pd.to_datetime(bars.pop("date"), errors="raise", utc=True)
     elif not isinstance(bars.index, pd.DatetimeIndex):
-        raise ValueError("行情需要 date 列或 DatetimeIndex")
+        raise ValueError("Market data requires a date column or DatetimeIndex")
     if bars.index.isna().any():
-        raise ValueError("行情日期不能缺失")
+        raise ValueError("Market data dates must not be missing")
     bars.index = pd.to_datetime(bars.index, utc=True).tz_convert(None).normalize()
     bars.index.name = "date"
     if bars.index.duplicated().any():
-        raise ValueError("日线行情不允许重复日期")
+        raise ValueError("Daily market data must not contain duplicate dates")
     missing = set(COLUMNS) - set(bars.columns)
     if missing:
-        raise ValueError(f"行情缺少字段: {', '.join(sorted(missing))}")
+        raise ValueError(f"Missing market data fields: {', '.join(sorted(missing))}")
     bars = bars[COLUMNS].sort_index().astype(float)
     if len(bars) < 2 or len(bars) > 100_000:
-        raise ValueError("行情需要 2 至 100000 行")
+        raise ValueError("Market data must contain between 2 and 100000 rows")
     if not np.isfinite(bars.to_numpy()).all():
-        raise ValueError("行情不能包含空值或无穷值")
+        raise ValueError("Market data must not contain missing or infinite values")
     if (bars[["open", "high", "low", "close"]] <= 0).any().any():
-        raise ValueError("价格必须为正数")
+        raise ValueError("Prices must be positive")
     if (bars.volume < 0).any():
-        raise ValueError("成交量不能为负数")
+        raise ValueError("Volume must not be negative")
     if (
         (bars.high < bars[["open", "close", "low"]].max(axis=1))
         | (bars.low > bars[["open", "close", "high"]].min(axis=1))
     ).any():
-        raise ValueError("OHLC 高低价关系不合法")
+        raise ValueError("Invalid OHLC high/low price relationships")
     return bars
 
 
@@ -61,7 +63,7 @@ def read_csv(source: str | Path | io.StringIO) -> pd.DataFrame:
 def demo_bars(periods: int = 756, seed: int = 42) -> pd.DataFrame:
     """Synthetic data, never presented as a real security's history."""
     if not 2 <= periods <= 10_000:
-        raise ValueError("演示行情长度应为 2 至 10000")
+        raise ValueError("Demo data must contain between 2 and 10000 rows")
     rng = np.random.default_rng(seed)
     cycle = np.sin(np.arange(periods) / 65) * 0.0014
     returns = rng.normal(0.00035 + cycle, 0.012, periods)
@@ -89,12 +91,14 @@ def yahoo_bars(symbol: str, start: str, end: str) -> pd.DataFrame:
 
     symbol = validate_symbol(symbol)
     if pd.Timestamp(start) >= pd.Timestamp(end):
-        raise ValueError("开始日期必须早于结束日期")
+        raise ValueError("Start date must be before end date")
     bars = yf.download(
         symbol, start=start, end=end, auto_adjust=True, progress=False, threads=False, timeout=20
     )
     if bars.empty:
-        raise ValueError("未取得 Yahoo 行情，请检查代码、日期和网络，或使用 CSV")
+        raise ValueError(
+            "No Yahoo data received. Check the symbol, dates, and network, or import a CSV file"
+        )
     if isinstance(bars.columns, pd.MultiIndex):
         bars.columns = bars.columns.get_level_values(0)
     return validate_bars(bars)

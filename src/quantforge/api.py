@@ -54,7 +54,11 @@ def create_app(data_dir: str | Path | None = None) -> FastAPI:
     datasets = root / "datasets"
     datasets.mkdir(exist_ok=True)
     broker = PaperBroker(root / "paper.sqlite3")
-    app = FastAPI(title="QuantForge", version="0.1.0", description="本地量化研究与模拟交易")
+    app = FastAPI(
+        title="QuantForge",
+        version="0.1.0",
+        description="Local quantitative research and paper trading",
+    )
     app.add_middleware(
         TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "[::1]", "testserver"]
     )
@@ -69,7 +73,7 @@ def create_app(data_dir: str | Path | None = None) -> FastAPI:
         if not path.exists():
             if symbol == "DEMO":
                 return demo_bars()
-            raise HTTPException(404, "请先导入该标的行情")
+            raise HTTPException(404, "Import market data for this symbol first")
         return read_csv(path)
 
     def save(symbol: str, bars: pd.DataFrame):
@@ -102,13 +106,13 @@ def create_app(data_dir: str | Path | None = None) -> FastAPI:
         if body.source == "demo":
             return save("DEMO", demo_bars())
         if validate_symbol(body.symbol) == "DEMO":
-            raise ValueError("DEMO 保留用于合成行情，请使用真实证券代码")
+            raise ValueError("DEMO is reserved for synthetic data; use a real security symbol")
         return save(body.symbol, yahoo_bars(body.symbol, body.start, body.end))
 
     @app.post("/api/data/csv")
     def import_csv(body: CsvRequest):
         if validate_symbol(body.symbol) == "DEMO":
-            raise ValueError("DEMO 保留用于合成行情")
+            raise ValueError("DEMO is reserved for synthetic data")
         return save(body.symbol, read_csv(io.StringIO(body.csv)))
 
     @app.post("/api/backtests")

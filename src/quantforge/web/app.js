@@ -1,6 +1,6 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
-const money = (v) => Number(v).toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2});
+const money = (v) => Number(v).toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 2});
 const percent = (v) => `${(v * 100).toFixed(2)}%`;
 let latestReport = null;
 let pendingOrder = null;
@@ -24,7 +24,7 @@ async function busy(form, operation) {
 }
 function dataLabel() {
   $('data-label').textContent = $('symbol').value === 'DEMO'
-    ? 'DEMO 为合成日线，不代表真实证券收益。' : '已导入历史行情；请确认复权方式和数据完整性。';
+    ? 'DEMO uses synthetic daily bars, not actual security returns.' : 'Imported historical data. Verify price adjustments and data completeness.';
 }
 async function refreshSymbols(selected) {
   const {symbols} = await api('/api/datasets');
@@ -53,7 +53,7 @@ function chart(rows) {
   minimum -= padding; maximum += padding;
   const x = (i) => left + i / Math.max(rows.length - 1, 1) * (width - left - right);
   const y = (v) => top + (maximum - v) / (maximum - minimum) * (height - top - bottom);
-  const svg = svgNode('svg', {viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': '策略与买入持有基准权益曲线'});
+  const svg = svgNode('svg', {viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Strategy and buy-and-hold benchmark equity curves'});
   for (let i = 0; i <= 4; i++) {
     const value = minimum + (maximum - minimum) * i / 4;
     svg.append(svgNode('line', {x1: left, x2: width - right, y1: y(value), y2: y(value), stroke: '#25313a', 'stroke-dasharray': '3 5'}));
@@ -75,13 +75,13 @@ function render(report) {
   $('annual-return').textContent = percent(m.annualized_return);
   $('max-dd').textContent = percent(m.max_drawdown);
   $('sharpe').textContent = m.sharpe_ratio.toFixed(2);
-  $('period').textContent = `${report.symbol} · ${m.bars} 个交易日`;
-  $('trade-summary').textContent = `${m.trade_count} 笔成交 · 手续费 ${money(m.total_fees)} · 滑点 ${money(m.total_slippage)}`;
-  $('risk-summary').textContent = m.halt_date ? `${m.halt_date} 触发回撤熔断` : `平均仓位 ${percent(m.average_exposure)} · 未触发熔断`;
+  $('period').textContent = `${report.symbol} · ${m.bars} trading days`;
+  $('trade-summary').textContent = `${m.trade_count} fills · Fees ${money(m.total_fees)} · Slippage ${money(m.total_slippage)}`;
+  $('risk-summary').textContent = m.halt_date ? `Drawdown stop triggered on ${m.halt_date}` : `Average exposure ${percent(m.average_exposure)} · No drawdown stop`;
   chart(report.equity);
   const rows = report.trades.slice(-30).reverse().map((trade) => {
     const row = document.createElement('tr');
-    const values = [trade.date, trade.side === 'buy' ? '买入' : '卖出', trade.quantity.toFixed(4), money(trade.price), money(trade.fee), trade.realized_pnl === null ? '—' : money(trade.realized_pnl)];
+    const values = [trade.date, trade.side === 'buy' ? 'Buy' : 'Sell', trade.quantity.toFixed(4), money(trade.price), money(trade.fee), trade.realized_pnl === null ? '—' : money(trade.realized_pnl)];
     values.forEach((value, index) => {
       const cell = document.createElement('td'); cell.textContent = value;
       if (index === 1) cell.className = trade.side;
@@ -91,17 +91,17 @@ function render(report) {
   });
   if (!rows.length) {
     const row = document.createElement('tr'), cell = document.createElement('td');
-    cell.colSpan = 6; cell.className = 'empty'; cell.textContent = '该区间内策略未产生交易'; row.append(cell); rows.push(row);
+    cell.colSpan = 6; cell.className = 'empty'; cell.textContent = 'No trades generated during this period'; row.append(cell); rows.push(row);
   }
   $('trades').replaceChildren(...rows);
   $('export').disabled = false;
-  notify(`回测完成：${report.symbol} · ${report.equity[0].date} 至 ${report.equity.at(-1).date}${report.data_kind === 'synthetic' ? ' · 合成行情演示' : ''}`);
+  notify(`Backtest complete: ${report.symbol} · ${report.equity[0].date} to ${report.equity.at(-1).date}${report.data_kind === 'synthetic' ? ' · Synthetic data demo' : ''}`);
 }
 $('symbol').addEventListener('change', dataLabel);
 $('backtest-form').addEventListener('submit', (event) => {
   event.preventDefault();
   busy(event.currentTarget, async () => {
-    notify('正在计算策略信号、执行成本和风险指标…');
+    notify('Calculating signals, execution costs, and risk metrics…');
     const value = (id) => Number($(id).value);
     render(await api('/api/backtests', {
       symbol: $('symbol').value,
@@ -115,19 +115,19 @@ $('backtest-form').addEventListener('submit', (event) => {
 $('download-form').addEventListener('submit', (event) => {
   event.preventDefault();
   busy(event.currentTarget, async () => {
-    notify('正在下载 Yahoo 行情，请稍候…');
+    notify('Downloading Yahoo market data. Please wait…');
     const result = await api('/api/data', {source: 'yahoo', symbol: $('download-symbol').value.trim(), start: $('start-date').value, end: $('end-date').value});
     await refreshSymbols(result.symbol);
-    notify(`已导入 ${result.symbol}：${result.rows} 行，${result.start} 至 ${result.end}`);
+    notify(`Imported ${result.symbol}: ${result.rows} rows, ${result.start} to ${result.end}`);
   });
 });
 $('csv-form').addEventListener('submit', (event) => {
   event.preventDefault();
   busy(event.currentTarget, async () => {
     const file = $('csv-file').files[0];
-    if (file.size > 10_000_000) throw new Error('CSV 文件不能超过 10 MB');
+    if (file.size > 10_000_000) throw new Error('CSV files must not exceed 10 MB');
     const result = await api('/api/data/csv', {symbol: $('csv-symbol').value.trim(), csv: await file.text()});
-    await refreshSymbols(result.symbol); notify(`已导入 ${result.symbol}：${result.rows} 行`);
+    await refreshSymbols(result.symbol); notify(`Imported ${result.symbol}: ${result.rows} rows`);
   });
 });
 async function refreshAccount() {
@@ -135,7 +135,7 @@ async function refreshAccount() {
   $('paper-equity').textContent = money(account.equity);
   $('paper-cash').textContent = money(account.cash);
   $('positions').textContent = account.positions.length
-    ? account.positions.map((p) => `${p.symbol} · ${p.quantity.toFixed(4)} 份 · 成本 ${money(p.average_cost)} · 估值日期 ${p.mark_date}`).join('\n') : '当前无持仓';
+    ? account.positions.map((p) => `${p.symbol} · ${p.quantity.toFixed(4)} shares · Average cost ${money(p.average_cost)} · Valuation date ${p.mark_date}`).join('\n') : 'No open positions';
 }
 $('order-form').addEventListener('submit', (event) => {
   event.preventDefault();
@@ -146,8 +146,8 @@ $('order-form').addEventListener('submit', (event) => {
     if (!pendingOrder || pendingOrder.fingerprint !== fingerprint) pendingOrder = {fingerprint, id: crypto.randomUUID()};
     const result = await api('/api/paper/orders', {...order, client_order_id: pendingOrder.id});
     pendingOrder = null;
-    $('order-result').textContent = `${result.symbol} ${result.side === 'buy' ? '买入' : '卖出'} ${result.quantity} 份，模拟成交价 ${money(result.price)}，参考行情日期 ${result.price_date}。`;
-    await refreshAccount(); notify('本地模拟订单已成交并保存。');
+    $('order-result').textContent = `${result.symbol} ${result.side === 'buy' ? 'Buy' : 'Sell'} ${result.quantity} shares at a simulated fill price of ${money(result.price)}. Reference date: ${result.price_date}.`;
+    await refreshAccount(); notify('Local paper order filled and saved.');
   });
 });
 $('export').addEventListener('click', () => {

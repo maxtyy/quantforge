@@ -38,7 +38,7 @@ def test_duplicate_order_is_idempotent_even_if_quote_changes(tmp_path):
     first = place(broker)
     assert place(broker, reference_price=120) == first
     assert len(broker.account()["orders"]) == 1
-    with pytest.raises(ValueError, match="不同订单"):
+    with pytest.raises(ValueError, match="different orders"):
         place(broker, quantity=11)
 
 
@@ -71,7 +71,7 @@ def test_invalid_orders_do_not_mutate_account(tmp_path, kwargs):
 
 def test_insufficient_cash_and_position_cap(tmp_path):
     broker = PaperBroker(tmp_path / "paper.sqlite3", initial_cash=1000)
-    with pytest.raises(ValueError, match="资金不足"):
+    with pytest.raises(ValueError, match="Insufficient available cash"):
         place(broker, quantity=20)
     with pytest.raises(ValueError, match="95%"):
         place(broker, quantity=9.6)

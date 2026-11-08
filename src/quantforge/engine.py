@@ -24,21 +24,21 @@ class BacktestConfig:
     def __post_init__(self):
         for name, value in asdict(self).items():
             if isinstance(value, bool) or not np.isfinite(value):
-                raise ValueError(f"{name} 必须为有限数值")
+                raise ValueError(f"{name} must be a finite number")
         if self.initial_cash <= 0:
-            raise ValueError("初始资金必须大于零")
+            raise ValueError("Initial cash must be greater than zero")
         if not 0 <= self.commission_bps <= 100 or not 0 <= self.slippage_bps <= 100:
-            raise ValueError("手续费和滑点应在 0 至 100 基点内")
+            raise ValueError("Commission and slippage must be between 0 and 100 basis points")
         if not 0 < self.max_position <= 1:
-            raise ValueError("最大仓位应在 (0, 1] 内")
+            raise ValueError("Maximum position must be in (0, 1]")
         if not 0 <= self.target_volatility <= 3:
-            raise ValueError("目标波动率应在 [0, 3] 内；0 表示关闭")
+            raise ValueError("Target volatility must be in [0, 3]; 0 disables volatility scaling")
         if not isinstance(self.volatility_window, int) or not 2 <= self.volatility_window <= 1000:
-            raise ValueError("波动率窗口应为 2 至 1000 的整数")
+            raise ValueError("Volatility window must be an integer between 2 and 1000")
         if not 0 < self.max_drawdown <= 1:
-            raise ValueError("最大回撤应在 (0, 1] 内")
+            raise ValueError("Maximum drawdown must be in (0, 1]")
         if not 0 <= self.rebalance_threshold < 1:
-            raise ValueError("调仓阈值应在 [0, 1) 内")
+            raise ValueError("Rebalance threshold must be in [0, 1)")
 
 
 @dataclass

@@ -1,53 +1,53 @@
-# 研究与执行假设
+# Research and execution assumptions
 
-## 数据和时间顺序
+## Data and event ordering
 
-1. 校验日线 OHLCV，按日期升序排列；一天仅一条记录。不自动填充缺失交易日。
-2. 在 t 日收盘后，用截至 t 的数据计算策略信号和波动率。
-3. 将目标权重整体移动一行，在 t+1 日开盘价上加入滑点后成交。
-4. 按 t+1 日收盘价计算权益、仓位和回撤，再决定是否触发永久停止交易。
+1. Validate daily OHLCV and sort by date, with one record per day. Missing trading days are not filled automatically.
+2. After the close on day t, calculate strategy signals and volatility using data available through t.
+3. Shift target weights by one row and execute at the day t+1 open, adjusted for slippage.
+4. Mark equity, exposure, and drawdown at the t+1 close, then determine whether to halt trading permanently.
 
-首次达到指标窗口前持有现金。最后一天的新信号没有下一交易日，故不会执行。回测末尾不强制卖出，剩余持仓按收盘价计值，因此没有虚构的期末平仓手续费。
+The account holds cash until indicator windows are complete. Signals on the final day cannot execute without a subsequent bar. Positions are not forcibly closed at the end of a backtest: remaining holdings are marked at the final close, without hypothetical liquidation fees.
 
-## 策略
+## Strategies
 
-- `trend`：快速简单移动平均线高于慢速平均线时目标信号为 1，否则为 0。
-- `momentum`：当前收盘价相对 `lookback` 个交易日前的涨幅大于零时为 1，否则为 0。
-- `mean_reversion`：收盘价相对滚动均值的 Z-score 低于 `-entry_z` 时买入，恢复至 0 或以上时退出。滚动标准差使用样本标准差；标准差为零时不持仓。
+- `trend`: the target signal is 1 when the fast simple moving average exceeds the slow average, otherwise 0.
+- `momentum`: the signal is 1 when the closing price return over `lookback` bars is positive, otherwise 0.
+- `mean_reversion`: enter when the closing price's rolling Z-score is below `-entry_z`; exit when it reaches 0 or above. Rolling standard deviation uses the sample definition. A zero standard deviation produces no position.
 
-所有策略只做多，输出 [0,1] 内的目标信号。`fast < slow` 始终作为配置一致性约束；均线之外的策略不使用这两个窗口。
+All strategies are long only and return signals in [0, 1]. The configuration always requires `fast < slow`; strategies other than moving average trend do not use these two windows.
 
-## 仓位及成本
+## Position sizing and costs
 
-目标波动率大于零时，用过去 `volatility_window` 个日收益的样本标准差乘 `sqrt(252)` 估计年化波动率。缩放系数为 `min(目标波动率 / 历史波动率, 1)`。窗口不足时持有现金，完整窗口内波动率为零时系数为 1。目标波动率为零表示关闭该控制。
+When target volatility is positive, annualized historical volatility is the sample standard deviation of the last `volatility_window` daily returns multiplied by `sqrt(252)`. The scaling factor is `min(target volatility / historical volatility, 1)`. Incomplete windows hold cash; a complete window with zero volatility uses a factor of 1. A target volatility of zero disables scaling.
 
-目标仓位 = 策略信号 × 缩放系数 × 最大仓位。它是交易时的目标，不是价格波动后仍保持不变的硬性仓位保证。
+Target weight = strategy signal × scaling factor × maximum position. This is a target at execution time, not a guarantee that exposure will stay within the same bound after prices move.
 
-默认目标和当前开盘仓位相差至少 2 个百分点才调仓；目标为零时始终允许退出。按成本调整目标成交量，使成交后仓位接近目标，并显式限制可用现金。允许小数份额，假设订单全部成交，没有成交量参与率、最低佣金或冲击函数。
+By default, rebalance when target weight and current opening exposure differ by at least 2 percentage points. A target of zero always permits an exit. Fill quantities account for trading costs to approximate the desired allocation after execution, with an explicit available-cash constraint. Fractional shares and full fills are assumed. There is no volume participation limit, minimum commission, or market-impact function.
 
-买入成交价 = 开盘价 × (1 + 滑点基点 / 10000)。卖出成交价 = 开盘价 × (1 - 滑点基点 / 10000)。手续费 = 成交数量 × 成交价 × 手续费基点 / 10000。
+Buy fill price = opening price × (1 + slippage bps / 10000). Sell fill price = opening price × (1 - slippage bps / 10000). Commission = quantity × fill price × commission bps / 10000.
 
-持仓成本采用移动加权平均法，买入手续费计入成本，卖出已实现盈亏扣除卖出手续费。
+Cost basis uses a moving weighted average. Buy commissions are included in cost basis; realized sell P&L also deducts sell commissions.
 
-## 回撤停止交易
+## Drawdown halt
 
-权益峰值从初始资金开始跟踪。收盘权益 / 历史峰值 - 1 达到负的回撤阈值时触发停止状态，下一个可用交易日开盘清仓，之后不再入场。如果最后一个交易日才触发，报告中仍保留未能清仓的持仓。
+Peak equity starts at initial cash. When closing equity / historical peak - 1 reaches the negative drawdown threshold, the account enters a halted state. It liquidates at the next available open and never reenters. If the trigger occurs on the final bar, the report retains the position that could not yet be liquidated.
 
-阈值是触发条件，**不是最大损失承诺**：隔夜跳空、成本和每日监测都可能让实际回撤超过阈值。
+The threshold is a trigger, **not a maximum-loss guarantee**. Overnight gaps, trading costs, and daily monitoring can produce a realized drawdown beyond the threshold.
 
-## 绩效指标
+## Performance metrics
 
-- 总收益：期末权益 / 初始资金 - 1。
-- 年化收益：(期末权益 / 初始资金)^(252 / 收益观测数) - 1。
-- 日收益：连续每日收盘权益变化率，首日不计收益观测。
-- 年化波动率：日收益总体标准差 × sqrt(252)。
-- 夏普：日收益均值 × 252 / 年化波动率；无风险收益率假设为 0；波动率近零时返回 0。
-- 最大回撤：每日权益相对截至当日峰值的最大跌幅，以正数报告。
-- 卖出成交胜率：已实现盈亏为正的卖出成交笔数 / 卖出成交笔数。它不是完整往返交易胜率；无卖出时为 null。
-- 买入持有基准：首日收盘买入，后续按收盘价计值，不收取成本。它用于价格走势比较，不是完全相同执行条件的竞争策略。
+- Total return: final equity / initial cash - 1.
+- Annualized return: (final equity / initial cash)^(252 / return observations) - 1.
+- Daily returns: changes between consecutive daily closing equity values; the first day is excluded.
+- Annualized volatility: population standard deviation of daily returns × sqrt(252).
+- Sharpe ratio: mean daily return × 252 / annualized volatility. The risk-free rate is zero; near-zero volatility returns a ratio of 0.
+- Maximum drawdown: the largest decline from the running equity peak, reported as a positive number.
+- Sell-fill win rate: profitable sell fills / all sell fills. This is not a round-trip trade win rate; it is null if there are no sells.
+- Buy-and-hold benchmark: buy at the first closing price, then mark at subsequent closes without costs. This is a price reference, not a competing strategy under identical execution conditions.
 
-默认每年 252 个观测，适用于日线股票研究。短区间的年化结果可能非常不稳定。没有参数寻优或样本外验证，不能将同一数据上的反复调参结果视为独立证据。
+The default annualization assumes 252 observations per year, appropriate for daily stock research. Annualized results over short periods can be unstable. No parameter optimization or out-of-sample validation is included, so repeated tuning on the same data is not independent evidence.
 
-## 可复现性
+## Reproducibility
 
-演示行情采用固定随机种子 42、固定结束日期 2025-12-31 和 756 个工作日。工作日索引不等同于真实交易所日历。报告保存策略参数和执行参数；CLI 演示额外保存原始合成行情。真实研究时应另行归档输入 CSV、依赖版本和代码提交号。
+Demo data uses random seed 42, a fixed end date of 2025-12-31, and 756 business days. A business-day index is not an exchange calendar. Reports retain strategy and execution parameters; the CLI demo also saves its synthetic input data. For real research, archive the input CSV, dependency versions, and Git commit separately.

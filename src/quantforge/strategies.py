@@ -16,16 +16,16 @@ class StrategyConfig:
 
     def __post_init__(self):
         if self.name not in {"trend", "momentum", "mean_reversion"}:
-            raise ValueError("未知策略")
+            raise ValueError("Unknown strategy")
         if any(
             isinstance(v, bool) or not isinstance(v, int) or not 2 <= v <= 1000
             for v in (self.fast, self.slow, self.lookback)
         ):
-            raise ValueError("策略窗口必须为 2 至 1000 的整数")
+            raise ValueError("Strategy windows must be integers between 2 and 1000")
         if self.fast >= self.slow:
-            raise ValueError("快速窗口必须小于慢速窗口")
+            raise ValueError("Fast window must be smaller than slow window")
         if not np.isfinite(self.entry_z) or not 0 < self.entry_z <= 10:
-            raise ValueError("均值回归入场阈值必须在 (0, 10] 内")
+            raise ValueError("Mean reversion entry threshold must be in (0, 10]")
 
 
 def target_weights(bars: pd.DataFrame, config: StrategyConfig) -> pd.Series:

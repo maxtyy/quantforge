@@ -10,20 +10,22 @@ from .strategies import StrategyConfig
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="quantforge", description="量化研究、回测与模拟交易")
+    parser = argparse.ArgumentParser(
+        prog="quantforge", description="Quantitative research, backtesting, and paper trading"
+    )
     commands = parser.add_subparsers(dest="command", required=True)
-    serve = commands.add_parser("serve", help="启动本地网页和 API")
+    serve = commands.add_parser("serve", help="Start the local dashboard and API")
     serve.add_argument("--port", type=int, default=8000)
-    demo = commands.add_parser("demo", help="用合成数据执行可复现回测")
+    demo = commands.add_parser("demo", help="Run a reproducible backtest with synthetic data")
     demo.add_argument("--output", type=Path, default=Path("reports/demo"))
-    backtest = commands.add_parser("backtest", help="回测本地 CSV")
+    backtest = commands.add_parser("backtest", help="Backtest a local CSV file")
     backtest.add_argument("csv", type=Path)
     backtest.add_argument(
         "--strategy", choices=["trend", "momentum", "mean_reversion"], default="trend"
     )
     backtest.add_argument("--cash", type=float, default=100_000)
     backtest.add_argument("--output", type=Path, default=Path("reports/backtest"))
-    download = commands.add_parser("download", help="下载 Yahoo 复权日线")
+    download = commands.add_parser("download", help="Download adjusted daily bars from Yahoo")
     download.add_argument("symbol")
     download.add_argument("--start", default="2020-01-01")
     download.add_argument("--end", default="2025-12-31")
@@ -37,11 +39,11 @@ def main():
         elif args.command == "download":
             symbol = validate_symbol(args.symbol)
             if symbol == "DEMO":
-                raise ValueError("DEMO 保留用于合成行情")
+                raise ValueError("DEMO is reserved for synthetic data")
             bars = yahoo_bars(symbol, args.start, args.end)
             args.output.mkdir(parents=True, exist_ok=True)
             bars.to_csv(args.output / f"{symbol}.csv")
-            print(f"已保存 {len(bars)} 行至 {args.output / f'{symbol}.csv'}")
+            print(f"Saved {len(bars)} rows to {args.output / f'{symbol}.csv'}")
         else:
             bars = demo_bars() if args.command == "demo" else read_csv(args.csv)
             strategy = StrategyConfig(name=getattr(args, "strategy", "trend"))
@@ -51,11 +53,13 @@ def main():
             result.export(args.output)
             if args.command == "demo":
                 bars.to_csv(args.output / "synthetic_bars.csv")
-                print("数据来源：固定随机种子的合成行情，不代表真实证券收益。")
+                print(
+                    "Data source: synthetic market data with a fixed random seed, not actual security returns."
+                )
             print(json.dumps(result.metrics, ensure_ascii=False, indent=2, allow_nan=False))
-            print(f"报告目录：{args.output.resolve()}")
+            print(f"Report directory: {args.output.resolve()}")
     except (ValueError, OSError) as exc:
-        parser.exit(1, f"错误：{exc}\n")
+        parser.exit(1, f"Error: {exc}\n")
 
 
 if __name__ == "__main__":
